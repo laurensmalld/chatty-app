@@ -13,21 +13,25 @@ class ChatBar extends Component {
     }
 
     handleSubmit(ev) {
-        if (ev.charCode == 13) {
+        if (ev.charCode === 13) {
           ev.preventDefault();
-          console.log("this is the value: " + this.state.value);
-          console.log(this.props.currentUser);
-          let username = this.refs.username.value;
-          let newMessage = this.refs.newMessage.value;
-          this.props.onSubmit(username, newMessage);
-        }
+          this.props.onSubmit(this.refs.newMessage.value, this.refs.username.value)
+          }
+          this.state.value = "";
     }
 
+
   render() {
-    const {currentUser, name} = this.props;
+    let currentUser = this.props.currentUser;
     return (
     <footer>
-      <input id="username" type="text" name="username" ref="username" placeholder={currentUser} onChange={this.handleSubmit} />
+     <input id="username"
+          type="text"
+          placeholder="Your name here (optional)"
+          ref="username"
+          value={this.props.curentUser}
+          />
+
       <input id="new-message"
           type="text"
           placeholder="Type a message and hit ENTER"
@@ -40,4 +44,5 @@ class ChatBar extends Component {
     );
   }
 }
+
 export default ChatBar;

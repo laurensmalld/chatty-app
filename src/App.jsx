@@ -1,68 +1,83 @@
 import React, {Component} from 'react';
 import MessageList from './MessageList.jsx';
 import ChatBar from './ChatBar.jsx';
-
-let data = {
-       currentUser: {name: "Bob"},
-      messages: [
-        {
-          username: "Bob",
-          content: "Has anyone seen my marbles?",
-          id: 1
-        },
-        {
-          username: "Anonymous",
-          content: "No, I think you lost them. You lost your marbles Bob. You lost them for good.",
-          id: 2
-        }
-      ]
-    };
-
+import uuid from 'node-uuid';
 
 class App extends Component {
-
-  constructor(props) {
-    super(props);
-    this.state = data;
-    this.addMessage = this.addMessage.bind(this);
+        constructor(props) {
+        super(props);
+    this.state = {
+      currentUser: {name: 'Anonymous'},
+      users: 0,
+      messages: []
+    };
   }
-
-  componentDidMount() {
+  // connect to server
+  componentDidMount () {
     this.socket = new WebSocket("ws://localhost:8080");
-    console.log('Connected to server');
+    this.socket.onopen = (event) => {
+      console.log('Connected to server');
+      }
 
-    this.socket.onmessage = this.receiveMessage;
+    this.socket.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+
+      switch (data.type) {
+        case "incomingMessage":
+          const message = this.state.messages.concat(data)
+          this.setState({messages: message})
+          break;
+
+        case "incomingNotification":
+          const notification = this.state.messages.concat(data)
+          this.setState({messages: notification})
+          break;
+
+        case "counter":
+        this.setState({users: data.count})
+        break;
+
+        default:
+          throw new Error("unknown event");
+      }
+    }
   }
 
-  sendMessage(username, content) {
+  addMessage (content, username) {
+    if (username === "") {
+      username = "Anonymous";
+    } if (this.state.currentUser.name !== username) {
+    let newUser = {
+    type: "postNotification",
+    content: `${this.state.currentUser.name} changed their name to ${username}`
+    };
+      this.socket.send(JSON.stringify(newUser));
+      this.setState({currentUser: {name: username}});
+    }
 
-
+    const newMessage = {
+      type: "postMessage",
+      username: username,
+      content: content
+    };
+    this.socket.send(JSON.stringify(newMessage));
+     document.getElementById("new-message").value = "";
   }
 
-  addMessage(username, content) {
-    let count = this.state.messages.length + 1;
-    const newMessage = {username: username, content: content, id: count};
-
-    console.log("this is the msg: " + content);
-
-    const allMessages = this.state.messages.concat(newMessage);
-    this.setState({messages: allMessages})
-  }
 
   render() {
     console.log("Rendering");
-
     return (
       <div className="wrapper">
         <nav>
           <h1>Chatty</h1>
+          <h4>{this.state.users} users online</h4>
         </nav>
         <MessageList messages = {this.state.messages} />
         <ChatBar currentUser = {this.state.currentUser.name}
-                  onSubmit={this.addMessage}
-                  />
+                  onSubmit={this.addMessage.bind(this)} />
       </div>
-    );
+    )
   }
 }
 export default App;
